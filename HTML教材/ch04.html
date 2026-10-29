@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>第4章 模块四　文本挖掘与 NLP · 数字教材</title>
+<title>第4章 　文本挖掘与 NLP · 数字教材</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -35,7 +35,7 @@
 <a href="#s410">4.10 学术前沿与延伸阅读</a>
   </aside>
   <main class="content">
-<h1>第 4 章　模块四　文本挖掘与 NLP</h1>
+<h1>第 4 章　文本挖掘与 NLP</h1>
 <div class="callout quote" id="lead"><p><b>学习目标</b>：完成本模块后，你应能<br>（1）说明中文分词与句读的特殊性；<br>（2）用分词 + TF-IDF/主题模型从语料中提炼结构；<br>（3）用命名实体识别抽取人/地/时/事；<br>（4）理解"历史语言"给 NLP 带来的适配难题，并能指出一处语料偏见。</p></div><h3 class="sec-h" id="s40">4.0 思政导入</h3>
 <div class="kbcase"><div class="callout quote"><p><b>思政融入（课程思政）</b>：用 NLP 阐释古籍，是“守正创新”的生动实践：以新方法激活传统，但<b>必须以尊重原文与前人注疏为前提</b>，不以模型结论僭越历史。中华典籍是中华民族的智慧结晶，让技术使它“活起来”，正是增强<b>文化自信</b>的一条切实路径——前提是谦卑与严谨。</p></div>
 <div class="callout quote"><p><b>思政案例（课程思政示范案例 / AI 思政课 知识库）</b>：可参照《文化哲学》“坚持文化自信”与《中医基础理论》“中国传统文化”的育人切入点——以技术活化典籍，须以尊重传统为前提。</p></div></div>
@@ -49,6 +49,7 @@
 <ul><li><b>分词</b>：<code>jieba.lcut("关关雎鸠在河之洲")</code>；</li><li><b>去停用词</b>：去掉"之、乎、者、也"等高频无实义词；</li><li><b>句读还原</b>：古书无标点，需先补断句再分析。</li></ul>
 <div class="callout quote"><p><b>提醒</b>：用现代分词器切古诗文，结果要人工抽查——"不亦说乎"被切成什么，决定了后续一切。</p></div>
 <span class="mod mod-theory">理论</span>
+<img src="c:\腾讯电脑管家截图文件\局部截取_20261029_124444.png" alt="中文分词与句读的特殊性">
 <h3 class="sec-h" id="s43">4.3 从词频到主题：词云、TF-IDF 与 LDA</h3>
 <ul><li><b>词频/词云</b>：最快的"扫一眼重点"，但易被长文主导；</li><li><b>TF-IDF</b>：衡量"在这篇重要、在全集罕见"的词，比纯词频更准；</li><li><b>LDA 主题模型</b>：把成千上万篇自动归成若干"主题"，每篇是主题的混合。例如对近代报刊跑 LDA，可能析出"实业""教育""宪政"等隐主题。</li></ul>
 <span class="mod mod-theory">理论</span>
