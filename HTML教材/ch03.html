@@ -74,7 +74,128 @@ print(df.groupby("dynasty")["name"].count())</code></pre>
 <div class="callout quote"><p><b>小练习 3.1（可复现清洗）</b>：取模块二小练习里你审计过的数据集（或任意一份 CSV），在预部署环境用 pandas 完成：① 读入并 <code>.info()</code> 看字段与缺失；② 处理缺失/重复；③ 用一个 <code>groupby</code> 回答一个真问题（如"按年份统计文献数量"）；④ 把清洗后结果存为新 CSV，并在报告里写明每一步。这就是"采集→清洗"这一段的第一次落地。</p></div>
 <span class="mod mod-theory">理论</span>
 <h3 class="sec-h" id="s38">3.8 第二次动手：用 groupby 复现一张论文统计表</h3>
-<ul><li><b>目标</b>：找一篇用了“按年份 / 类别分组计数”的人文论文，用 pandas 复现它的分组表。</li><li><b>步骤</b>：<ol><li>取一份带类别字段的数据集；</li><li>用 <code>df.groupby([...]).agg(...)</code> 得到计数；</li><li>与原表逐格核对；</li><li>若对不上，定位是口径差异还是数据差异；</li><li>输出核对结果。</li></ol></li><li><b>工具</b>：pandas。</li><li><b>产出</b>：复现的分组表 + 核对说明。</li><li><b>评价量规</b>：groupby 正确（40%）、核对有据（40%）、解释清晰（20%）。</li></ul>
+<p>本节按入门、进阶、高阶三个层级提供 9 个可迁移到文史研究的 Python 与 pandas 案例。每个案例都说明要解决的任务和适用场景；代码使用小型示例数据，可直接运行。处理自己的材料时，把示例数据替换为经许可取得的 CSV 或表格，并核对字段名。</p>
+<h4>入门：读入、筛选、计数</h4>
+<h4>案例 1：打开并检查一份文献目录</h4>
+<p><b>任务</b>：读取包含题名、作者、年代等字段的 CSV，先确认数据规模、字段名称和前几行内容。<b>使用场景</b>：刚拿到古籍目录、地方志书目或档案清单时，先了解数据长什么样，再决定如何清洗与分析。示例用内存中的小 CSV，处理真实文件时可将 <code>StringIO(...)</code> 换成文件路径。</p>
+<pre class="code" data-lang="python"><code>from io import StringIO
+import pandas as pd
+
+catalog = pd.read_csv(StringIO("""题名,作者,年代
+颜氏家训,颜之推,北齐
+乡土中国,费孝通,1947"""))
+print("行数、列数：", catalog.shape)
+print("字段：", catalog.columns.tolist())
+print(catalog.head())</code></pre>
+<h4>案例 2：按关键词查找相关材料</h4>
+<p><b>任务</b>：从题名中筛选包含“家训”的记录，并查看命中的题名。<b>使用场景</b>：从大型书目、报刊或档案目录中初步圈定研究材料；关键词检索只是筛选线索，仍需人工核验异名、误命中和遗漏。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+catalog = pd.DataFrame({
+    "题名": ["颜氏家训", "唐人传奇选", "朱子家训辑要"],
+    "年代": ["北齐", "唐", "清"]
+})
+matched = catalog[catalog["题名"].str.contains("家训", na=False)]
+print(matched)</code></pre>
+<h4>案例 3：统计各类别的材料数量</h4>
+<p><b>任务</b>：按朝代统计诗作记录数，并按数量从多到少排列。<b>使用场景</b>：复现论文中的“各朝代作品数量”基础统计表，或先了解一个诗歌语料的年代分布；结果反映的是当前数据集的收录情况，不等同于历史上的真实创作总量。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+poems = pd.DataFrame({
+    "题名": ["春望", "静夜思", "赤壁", "山行"],
+    "朝代": ["唐", "唐", "唐", "晚唐"]
+})
+counts = poems.groupby("朝代").size().sort_values(ascending=False)
+print(counts)</code></pre>
+<h4>进阶：清洗、交叉统计、合并资料</h4>
+<h4>案例 4：清理重复记录并规范文字字段</h4>
+<p><b>任务</b>：去掉题名首尾空格，再按题名和作者识别重复记录，同时单独检查缺失值。<b>使用场景</b>：合并多个目录或从不同数据库导出书目后，处理格式差异与重复收录。去重前应确认“题名 + 作者”足以识别同一条记录，不能把同名异作误删。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+catalog = pd.DataFrame({
+    "题名": [" 乡土中国 ", "乡土中国", "城南旧事"],
+    "作者": ["费孝通", "费孝通", "林海音"],
+    "年代": [1947, 1947, None]
+})
+catalog["题名"] = catalog["题名"].str.strip()
+catalog = catalog.drop_duplicates(subset=["题名", "作者"])
+print("缺失值数量：")
+print(catalog.isna().sum())
+print(catalog)</code></pre>
+<h4>案例 5：制作“朝代 × 体裁”交叉表</h4>
+<p><b>任务</b>：统计每个朝代中不同体裁的作品数量，形成行列交叉的表格。<b>使用场景</b>：比较不同历史时期的文类分布，或复现论文中的分类统计表；体裁标签应先统一口径，避免把“词”“词作”等不同写法误当成不同类别。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+works = pd.DataFrame({
+    "朝代": ["唐", "唐", "宋", "宋", "宋"],
+    "体裁": ["诗", "词", "诗", "词", "词"],
+    "题名": ["春望", "忆江南", "山行", "水调歌头", "念奴娇"]
+})
+table = works.pivot_table(
+    index="朝代", columns="体裁", values="题名",
+    aggfunc="count", fill_value=0
+)
+print(table)</code></pre>
+<h4>案例 6：合并人物表与作品表并检查未匹配记录</h4>
+<p><b>任务</b>：按人物编号把作品记录与人物生平表合并，并找出没有匹配到人物信息的作品。<b>使用场景</b>：将人物、作品、地点等分散表格连接起来建立分析数据；未匹配记录可能来自编号错误、异名或缺失资料，应核查后再决定如何处理。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+people = pd.DataFrame({
+    "人物编号": [1, 2],
+    "作者": ["李白", "杜甫"],
+    "籍贯": ["碎叶", "巩县"]
+})
+works = pd.DataFrame({
+    "题名": ["静夜思", "春望", "佚名诗"],
+    "人物编号": [1, 2, 9]
+})
+joined = works.merge(people, on="人物编号", how="left", indicator=True)
+print(joined)
+print("待核查记录：")
+print(joined.loc[joined["_merge"] == "left_only", ["题名", "人物编号"]])</code></pre>
+<h4>高阶：复合指标、时间趋势、可复现抽样</h4>
+<h4>案例 7：一次计算多项朝代统计指标</h4>
+<p><b>任务</b>：按朝代同时统计作品条数、不同题名数和作品年代的平均值，再按作品数排序。<b>使用场景</b>：从单一计数扩展到多指标描述，制作可与论文表格逐项核对的汇总结果。平均年代只适用于年代字段含义一致且可量化的材料，统计口径需在报告中说明。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+works = pd.DataFrame({
+    "朝代": ["唐", "唐", "宋", "宋"],
+    "题名": ["春望", "静夜思", "山行", "水调歌头"],
+    "年份": [757, 726, 1085, 1076]
+})
+summary = works.groupby("朝代").agg(
+    记录数=("题名", "size"),
+    不同题名数=("题名", "nunique"),
+    平均年份=("年份", "mean")
+).sort_values("记录数", ascending=False)
+print(summary)</code></pre>
+<h4>案例 8：比较各年代的体裁比例</h4>
+<p><b>任务</b>：把年份换算为年代，统计每个年代各体裁的作品数与该体裁在当年代的比例。<b>使用场景</b>：观察某类文体在不同时段的相对变化；比例有助于避免各年代收录总量不同造成的直接计数误读，但不能单独证明文体兴衰的历史原因。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+works = pd.DataFrame({
+    "年份": [1012, 1028, 1035, 1112, 1124],
+    "体裁": ["诗", "词", "诗", "词", "词"]
+})
+works["年代"] = works["年份"] // 10 * 10
+counts = works.groupby(["年代", "体裁"]).size().reset_index(name="篇数")
+counts["年代内比例"] = (
+    counts["篇数"] / counts.groupby("年代")["篇数"].transform("sum")
+)
+print(counts)</code></pre>
+<h4>案例 9：按类别抽取可复现的核查样本</h4>
+<p><b>任务</b>：从每种体裁中各抽取一条记录，固定随机种子，使同一代码重复运行得到相同样本。<b>使用场景</b>：人工抽查 OCR 结果、主题标签或分类标注的质量；抽样用于核验，不代表全部材料都已检查，报告中应记录抽样规则与样本量。</p>
+<pre class="code" data-lang="python"><code>import pandas as pd
+
+records = pd.DataFrame({
+    "题名": ["春望", "静夜思", "山行", "水调歌头", "念奴娇"],
+    "体裁": ["诗", "诗", "诗", "词", "词"]
+})
+sample = records.groupby("体裁", group_keys=False).sample(
+    n=1, random_state=42
+)
+print(sample)</code></pre>
+<div class="callout quote"><p><b>综合练习与评价</b>：任选一篇采用“按年份 / 类别分组计数”的人文论文，使用入门案例完成基础计数，再选一个进阶或高阶案例扩展分析；与原表逐格核对，并说明数据来源、字段口径、未匹配或缺失记录的处理方式。<b>产出</b>：可复现的代码、统计表和核对说明。<b>评价</b>：代码与统计正确（40%）、与原表核对有据（40%）、对数据限制解释清晰（20%）。</p></div>
 <span class="mod mod-theory">理论</span>
 <h3 class="sec-h" id="s39">3.9 本章小结与思考</h3>
 <p>带走三件事：<b>pandas 三件套</b>（Series/DataFrame/读写）、<b>清洗四板斧</b>（缺失/重复/类型/重命名）、<b>可复现纪律</b>（种子/版本/环境/留痕）。模块一说的流水线"采集→清洗→建模→验证→沟通"，你今天走完了前两步。</p>
